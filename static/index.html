@@ -238,7 +238,40 @@
     font-variant-numeric: tabular-nums;
     background: var(--panel-2); padding: 1px 6px; border-radius: 4px;
     margin-right: 6px;
+    cursor: pointer; transition: all 0.15s;
   }
+  #transcript .ts:hover {
+    background: var(--accent-soft); color: var(--accent-strong);
+  }
+
+  #transcript .seg-text {
+    outline: none; border-radius: 4px;
+    padding: 1px 3px; margin: -1px -3px;
+    transition: background 0.15s;
+  }
+  #transcript .seg-text:hover { background: rgba(236, 72, 153, 0.06); }
+  #transcript .seg-text:focus {
+    background: #fff8fb;
+    box-shadow: 0 0 0 2px var(--accent-soft);
+  }
+
+  .audio-player-wrap {
+    display: none;
+    background: linear-gradient(135deg, #ffffff 0%, var(--panel-2) 100%);
+    border: 1px solid var(--border-soft);
+    border-radius: 14px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    align-items: center; gap: 12px;
+    box-shadow: 0 4px 14px -10px rgba(192, 132, 152, 0.4);
+  }
+  .audio-player-wrap.show { display: flex; }
+  .audio-player-wrap .label {
+    font-family: "Fraunces", Georgia, serif;
+    font-style: italic; color: var(--text-soft);
+    font-size: 13px; white-space: nowrap;
+  }
+  .audio-player-wrap audio { flex: 1; min-width: 0; height: 36px; }
 
   .edit-speaker-btn {
     display: inline-block; vertical-align: baseline;
@@ -421,6 +454,11 @@
     </div>
     <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
 
+    <div class="audio-player-wrap" id="audioWrap">
+      <span class="label">♪ Audio</span>
+      <audio id="audioPlayer" controls preload="metadata"></audio>
+    </div>
+
     <div id="transcript"></div>
 
     <div id="doneBanner" class="done-banner"></div>
@@ -433,8 +471,10 @@
     </div>
 
     <div id="downloadRow" class="download-row">
-      <a class="download-btn primary" id="dlZip" href="#" download>♡ Télécharger (zip)</a>
-      <a class="download-btn" id="dlTxt" href="#" download>texte seul</a>
+      <a class="download-btn primary" id="dlDocx" href="#" download>♡ Word (.docx)</a>
+      <a class="download-btn" id="dlMd" href="#" download>markdown</a>
+      <a class="download-btn" id="dlZip" href="#" download>zip (txt + srt)</a>
+      <a class="download-btn" id="dlTxt" href="#" download>texte</a>
       <a class="download-btn" id="dlSrt" href="#" download>sous-titres</a>
     </div>
   </main>
@@ -462,9 +502,13 @@ const els = {
   speakersList: document.getElementById("speakersList"),
   applyBtn: document.getElementById("applyBtn"),
   downloadRow: document.getElementById("downloadRow"),
+  dlDocx: document.getElementById("dlDocx"),
+  dlMd: document.getElementById("dlMd"),
   dlZip: document.getElementById("dlZip"),
   dlTxt: document.getElementById("dlTxt"),
   dlSrt: document.getElementById("dlSrt"),
+  audioWrap: document.getElementById("audioWrap"),
+  audioPlayer: document.getElementById("audioPlayer"),
 };
 
 let selectedFile = null;
@@ -478,10 +522,24 @@ let currentMeta = "";
 let segments = [];          // tous les segments reçus (pour re-render après edit)
 let currentSpeakers = [];   // [{label, sample_url, ...}]
 let currentNameMap = {};    // mapping renommage : {"Speaker 1": "Marc"}
+let isEditingText = false;  // pour suspendre l'auto-scroll pendant l'édition
 
 function speakerDisplay(label) {
   if (!label) return null;
   return currentNameMap[label] || label;
+}
+
+function setAudioSource(jobId) {
+  if (els.audioPlayer.dataset.jobId === jobId) return;
+  els.audioPlayer.src = `/audio/${jobId}`;
+  els.audioPlayer.dataset.jobId = jobId;
+  els.audioWrap.classList.add("show");
+}
+
+function jumpToTimestamp(seconds) {
+  if (!els.audioPlayer.src) return;
+  els.audioPlayer.currentTime = seconds;
+  els.audioPlayer.play().catch(() => {});
 }
 
 function setStatus(text, { idle = false, percent = null, meta = null } = {}) {
@@ -577,6 +635,7 @@ els.goBtn.addEventListener("click", async () => {
   } catch (e) { showError("Erreur démarrage : " + e.message); els.goBtn.disabled = false; return; }
 
   jobInProgress = true;
+  setAudioSource(job_id);
   await acquireWakeLock();
   subscribe(job_id);
 });
@@ -600,6 +659,9 @@ function resetUI() {
   els.speakersPanel.classList.remove("show");
   els.speakersList.innerHTML = "";
   els.downloadRow.classList.remove("show");
+  els.audioWrap.classList.remove("show");
+  els.audioPlayer.removeAttribute("src");
+  els.audioPlayer.dataset.jobId = "";
   currentSpeakerInLine = null;
   lastSegmentIndex = 0;
   segments = [];
@@ -641,7 +703,7 @@ function appendSegment(seg) {
     text: seg.text, speaker: seg.speaker,
   });
   appendSegmentToDOM(seg);
-  els.transcript.scrollTop = els.transcript.scrollHeight;
+  if (!isEditingText) els.transcript.scrollTop = els.transcript.scrollHeight;
 }
 
 function appendSegmentToDOM(seg) {
@@ -655,21 +717,64 @@ function appendSegmentToDOM(seg) {
       els.transcript.appendChild(head);
       currentSpeakerInLine = display;
     }
-    const line = document.createElement("div");
-    line.className = "text-line";
-    line.dataset.index = seg.index;
-    line.innerHTML = `<span class="ts">${ts}</span><span class="seg-text">${escapeHtml(seg.text)}</span>`;
-    line.appendChild(makeEditButton(seg));
-    els.transcript.appendChild(line);
+    els.transcript.appendChild(buildLine(seg, "text-line", ts));
   } else {
-    const line = document.createElement("div");
-    line.className = "plain-line";
-    line.dataset.index = seg.index;
-    line.innerHTML = `<span class="ts">${ts}</span><span class="seg-text">${escapeHtml(seg.text)}</span>`;
-    line.appendChild(makeEditButton(seg));
-    els.transcript.appendChild(line);
+    els.transcript.appendChild(buildLine(seg, "plain-line", ts));
     currentSpeakerInLine = null;
   }
+}
+
+function buildLine(seg, className, ts) {
+  const line = document.createElement("div");
+  line.className = className;
+  line.dataset.index = seg.index;
+
+  const tsEl = document.createElement("span");
+  tsEl.className = "ts";
+  tsEl.textContent = ts;
+  tsEl.title = "Cliquer pour écouter ce passage";
+  tsEl.onclick = () => jumpToTimestamp(seg.start);
+
+  const textEl = document.createElement("span");
+  textEl.className = "seg-text";
+  textEl.textContent = seg.text;
+  textEl.contentEditable = "true";
+  textEl.spellcheck = false;
+  textEl.title = "Cliquer pour modifier le texte";
+  attachTextEditor(textEl, seg);
+
+  line.appendChild(tsEl);
+  line.appendChild(textEl);
+  line.appendChild(makeEditButton(seg));
+  return line;
+}
+
+function attachTextEditor(textEl, seg) {
+  textEl.addEventListener("focus", () => { isEditingText = true; });
+  textEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); textEl.blur(); }
+    else if (e.key === "Escape") { e.preventDefault(); textEl.textContent = seg.text; textEl.blur(); }
+  });
+  textEl.addEventListener("blur", async () => {
+    isEditingText = false;
+    const newText = textEl.textContent.trim();
+    if (!newText) { textEl.textContent = seg.text; return; }
+    if (newText === seg.text) return;
+    try {
+      const res = await fetch(`/edit/${currentJobId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ index: seg.index, text: newText }),
+      });
+      if (!res.ok) throw new Error(`${res.status} ${await res.text().catch(() => res.statusText)}`);
+      segments[seg.index - 1].text = newText;
+      seg.text = newText;
+    } catch (err) {
+      console.error("Édition échouée :", err);
+      alert("Erreur d'édition : " + err.message);
+      textEl.textContent = seg.text;
+    }
+  });
 }
 
 function renderTranscript() {
@@ -750,6 +855,8 @@ function finishJob(ev) {
     els.dlZip.href = ev.downloads.zip;
     els.dlTxt.href = ev.downloads.txt;
     els.dlSrt.href = ev.downloads.srt;
+    els.dlDocx.href = `/download/${currentJobId}/docx`;
+    els.dlMd.href = `/download/${currentJobId}/md`;
     els.downloadRow.classList.add("show");
   }
 
@@ -773,11 +880,13 @@ window.addEventListener("load", async () => {
       setStatus(`Reprise : ${info.filename}`, { meta: `${info.n_segments} segments déjà transcrits` });
       els.goBtn.disabled = true;
       jobInProgress = true;
+      setAudioSource(lastJobId);
       await acquireWakeLock();
       subscribe(lastJobId);
     } else if (info.status === "done") {
       currentJobId = lastJobId;
       setStatus("Chargement du job précédent…", { meta: info.filename });
+      setAudioSource(lastJobId);
       subscribe(lastJobId);
     } else {
       localStorage.removeItem("lastJobId");

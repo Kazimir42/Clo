@@ -17,7 +17,7 @@ cp .env.example .env
 # puis éditer .env et coller ton token HF_TOKEN
 ```
 
-`ffmpeg` doit être disponible sur le système (`brew install ffmpeg` sur macOS).
+> Aucune dépendance externe à installer : `faster-whisper` embarque son propre décodeur audio (PyAV), donc pas besoin d'installer `ffmpeg` séparément.
 
 ## Interface web
 
@@ -30,9 +30,21 @@ Puis ouvre http://127.0.0.1:8000
 L'interface permet :
 - de glisser un fichier audio
 - de choisir langue, modèle, diarisation, VAD
-- de voir la transcription apparaître **en direct** au fur et à mesure
-- (si diarisation) d'**écouter un échantillon de chaque locuteur** et de leur donner un nom
-- de télécharger `.txt`, `.srt` ou un `.zip` des deux
+- de voir la transcription apparaître **en direct** au fur et à mesure (segments + timestamps + locuteurs)
+- (si diarisation) d'**écouter un échantillon de chaque locuteur** et de leur donner un vrai nom
+- de **corriger manuellement** le locuteur d'une ligne mal attribuée (icône ✎ au hover sur chaque ligne)
+- de **modifier directement le texte** d'un segment (clic sur le texte → édition inline, *Entrée* pour valider, *Échap* pour annuler)
+- d'**écouter un passage précis** en cliquant sur son timestamp (saut + lecture automatique dans le mini-player audio en haut)
+- de télécharger en **Word (.docx)**, **markdown**, `.txt`, `.srt` ou un `.zip` (txt + srt)
+
+### Robustesse pour les longs fichiers
+
+La transcription d'un fichier d'1h prend du temps. L'app est conçue pour survivre aux aléas :
+
+- **PC qui se verrouille** : l'app demande un *Wake Lock* au navigateur pour empêcher la mise en veille pendant la transcription.
+- **Onglet ou navigateur fermé puis rouvert** : l'`id` du job est mémorisé dans le `localStorage` ; à la prochaine ouverture, l'app se rebranche automatiquement sur le job qui continue côté serveur.
+- **Connexion SSE qui tombe** : le worker tourne dans un thread de fond, **indépendamment** de la connexion. Une reconnexion rejoue tout l'historique des segments puis suit le live (déduplication automatique côté client).
+- **Crash complet** : les fichiers `.txt`/`.srt` sont **écrits sur disque au fur et à mesure** dans `output/<nom>/` avec `flush()`. Même si le serveur Python crashe, ce qui a déjà été transcrit est sauvé.
 
 ## Utilisation en CLI
 
@@ -119,15 +131,33 @@ Sur Mac M1/M2 (CPU, modèle `small`), comptez environ :
 
 ```
 .
-├── core.py             # logique partagée (whisper + pyannote + streaming)
-├── transcribe.py       # CLI batch (input/ -> output/)
-├── server.py           # serveur FastAPI (interface web)
-├── static/index.html   # interface web
+├── core.py              # logique partagée (whisper + pyannote + générateur de segments)
+├── transcribe.py        # CLI batch (input/ -> output/)
+├── server.py            # serveur FastAPI (interface web)
+├── static/
+│   ├── index.html       # interface web (HTML + CSS + JS, tout-en-un)
+│   └── favicon.svg      # favicon fleur
 ├── requirements.txt
-├── .env                # secrets locaux (ignoré par git)
-├── .env.example        # template
+├── .env                 # secrets locaux (ignoré par git)
+├── .env.example         # template
 ├── .gitignore
-├── input/              # fichiers audio à traiter (mode CLI)
-├── output/             # transcriptions générées
-└── uploads/            # uploads temporaires (mode web, ignoré par git)
+├── input/               # fichiers audio à traiter (mode CLI)
+├── output/              # transcriptions générées (txt + srt, par sous-dossier)
+└── uploads/             # uploads temporaires du mode web (ignoré par git)
 ```
+
+## API du serveur (référence rapide)
+
+| Méthode | Route | Description |
+| --- | --- | --- |
+| `GET` | `/` | Interface web |
+| `POST` | `/upload` | Upload d'un fichier audio → retourne `job_id` |
+| `POST` | `/start/{job_id}` | Lance le worker (en thread de fond) |
+| `GET` | `/events/{job_id}` | SSE : rejoue l'historique puis suit le live |
+| `GET` | `/job/{job_id}` | État d'un job (pour la reprise) |
+| `GET` | `/sample/{job_id}/{speaker}.wav` | Échantillon vocal d'un locuteur |
+| `POST` | `/rename/{job_id}` | Applique un mapping de noms (Speaker N → vrai nom) |
+| `POST` | `/reassign/{job_id}` | Réassigne manuellement un segment à un autre locuteur |
+| `POST` | `/edit/{job_id}` | Modifie le texte d'un segment |
+| `GET` | `/audio/{job_id}` | Sert le fichier audio source (pour le mini-player + saut au timestamp) |
+| `GET` | `/download/{job_id}/{txt\|srt\|md\|docx\|zip}` | Télécharge la transcription dans le format demandé |

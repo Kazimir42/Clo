@@ -32,6 +32,66 @@ from core import (
     write_outputs,
 )
 
+
+def _ts_hms(seconds: float) -> str:
+    return format_timestamp(seconds).split(",")[0]
+
+
+def build_markdown(job: dict) -> str:
+    name_map = job.get("name_map") or {}
+    lines = [f"# {job['stem']}", ""]
+    speakers_in_use = {name_map.get(seg.get("speaker"), seg.get("speaker")) for seg in job["segments"] if seg.get("speaker")}
+    if speakers_in_use:
+        lines.append("**Locuteurs** : " + ", ".join(sorted(speakers_in_use)))
+        lines.append("")
+    current_speaker = None
+    for seg in job["segments"]:
+        speaker = seg.get("speaker")
+        display = name_map.get(speaker, speaker) if speaker else None
+        ts = _ts_hms(seg["start"])
+        if display:
+            if display != current_speaker:
+                lines.append("")
+                lines.append(f"### {display}")
+                lines.append("")
+                current_speaker = display
+            lines.append(f"_{ts}_ — {seg['text']}")
+        else:
+            lines.append(f"_{ts}_ — {seg['text']}")
+    return "\n".join(lines) + "\n"
+
+
+def build_docx(job: dict) -> bytes:
+    from docx import Document
+    from docx.shared import Pt, RGBColor
+    name_map = job.get("name_map") or {}
+    doc = Document()
+    doc.add_heading(job["stem"], level=1)
+    speakers_in_use = sorted({name_map.get(seg.get("speaker"), seg.get("speaker")) for seg in job["segments"] if seg.get("speaker")})
+    if speakers_in_use:
+        p = doc.add_paragraph()
+        r = p.add_run("Locuteurs : "); r.bold = True
+        p.add_run(", ".join(speakers_in_use))
+    doc.add_paragraph()
+
+    pink = RGBColor(0xDB, 0x27, 0x77)
+    gray = RGBColor(0x99, 0x99, 0x99)
+    current_speaker = None
+    for seg in job["segments"]:
+        speaker = seg.get("speaker")
+        display = name_map.get(speaker, speaker) if speaker else None
+        ts = _ts_hms(seg["start"])
+        if display and display != current_speaker:
+            p = doc.add_paragraph()
+            r = p.add_run(display); r.bold = True; r.font.size = Pt(13); r.font.color.rgb = pink
+            current_speaker = display
+        p = doc.add_paragraph()
+        ts_r = p.add_run(f"{ts}  "); ts_r.italic = True; ts_r.font.size = Pt(9); ts_r.font.color.rgb = gray
+        p.add_run(seg["text"])
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
 load_dotenv()
 
 UPLOADS_DIR = Path("uploads")
@@ -298,6 +358,35 @@ async def rename(job_id: str, request: Request):
     return {"ok": True, "name_map": name_map}
 
 
+@app.post("/edit/{job_id}")
+async def edit_segment(job_id: str, request: Request):
+    """Modifie le texte d'un segment et réécrit les fichiers."""
+    if job_id not in JOBS:
+        raise HTTPException(404)
+    job = JOBS[job_id]
+    body = await request.json()
+    idx = int(body["index"])
+    new_text = str(body.get("text", "")).strip()
+    if not (1 <= idx <= len(job["segments"])):
+        raise HTTPException(400, "Index invalide")
+    if not new_text:
+        raise HTTPException(400, "Texte vide")
+    job["segments"][idx - 1]["text"] = new_text
+    write_outputs(job["out_dir"], job["stem"], job["segments"], name_map=job.get("name_map") or {})
+    return {"ok": True}
+
+
+@app.get("/audio/{job_id}")
+def audio(job_id: str):
+    """Sert le fichier audio uploadé pour permettre la lecture côté navigateur."""
+    if job_id not in JOBS:
+        raise HTTPException(404)
+    job = JOBS[job_id]
+    if not job["audio_path"].exists():
+        raise HTTPException(404, "Audio introuvable")
+    return FileResponse(job["audio_path"])
+
+
 @app.post("/reassign/{job_id}")
 async def reassign(job_id: str, request: Request):
     """Réassigne manuellement un segment à un autre locuteur (ou aucun)."""
@@ -331,6 +420,18 @@ def download(job_id: str, kind: str):
         return FileResponse(txt_path, filename=f"{stem}.txt", media_type="text/plain")
     if kind == "srt":
         return FileResponse(srt_path, filename=f"{stem}.srt", media_type="application/x-subrip")
+    if kind == "md":
+        return Response(
+            content=build_markdown(job).encode("utf-8"),
+            media_type="text/markdown",
+            headers={"Content-Disposition": f'attachment; filename="{stem}.md"'},
+        )
+    if kind == "docx":
+        return Response(
+            content=build_docx(job),
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={"Content-Disposition": f'attachment; filename="{stem}.docx"'},
+        )
     if kind == "zip":
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
