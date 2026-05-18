@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Clo — Transcription audio</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161a22;
+    --panel-2: #1d222c;
+    --border: #262c38;
+    --text: #e7e9ee;
+    --muted: #8a93a6;
+    --accent: #6ee7b7;
+    --accent-strong: #34d399;
+    --danger: #f87171;
+    --warning: #fbbf24;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text);
+    font-size: 14px; line-height: 1.5;
+    display: flex; flex-direction: column;
+  }
+  header {
+    flex-shrink: 0;
+    padding: 18px 24px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: baseline; gap: 16px;
+  }
+  header h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: 0.3px; }
+  header .sub { color: var(--muted); font-size: 12px; }
+
+  .layout { display: grid; grid-template-columns: 360px 1fr; gap: 0; flex: 1; min-height: 0; }
+  .left, .right { padding: 24px; overflow-y: auto; min-height: 0; }
+  .left { border-right: 1px solid var(--border); background: var(--panel); }
+
+  /* Scrollbars sobres en dark mode */
+  .left::-webkit-scrollbar, .right::-webkit-scrollbar { width: 10px; }
+  .left::-webkit-scrollbar-track, .right::-webkit-scrollbar-track { background: transparent; }
+  .left::-webkit-scrollbar-thumb, .right::-webkit-scrollbar-thumb {
+    background: var(--border); border-radius: 5px; border: 2px solid transparent; background-clip: padding-box;
+  }
+  .left::-webkit-scrollbar-thumb:hover, .right::-webkit-scrollbar-thumb:hover { background: #3a4252; background-clip: padding-box; border: 2px solid transparent; }
+
+  .field { margin-bottom: 18px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  input[type="text"], select {
+    width: 100%; padding: 9px 12px; background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px; font-size: 14px;
+    outline: none; transition: border-color 0.15s;
+  }
+  input[type="text"]:focus, select:focus { border-color: var(--accent); }
+
+  .file-drop {
+    border: 1.5px dashed var(--border); border-radius: 10px; padding: 22px 14px;
+    text-align: center; cursor: pointer; transition: all 0.15s;
+    background: var(--panel-2);
+  }
+  .file-drop:hover, .file-drop.dragover { border-color: var(--accent); background: #1a2230; }
+  .file-drop .filename { font-weight: 500; color: var(--accent); margin-top: 6px; }
+  .file-drop .hint { color: var(--muted); font-size: 12px; }
+  input[type="file"] { display: none; }
+
+  .toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+  .toggle input { accent-color: var(--accent-strong); width: 16px; height: 16px; }
+
+  .go-btn {
+    width: 100%; padding: 16px; margin-top: 8px;
+    background: var(--accent-strong); color: #0a0f14;
+    border: none; border-radius: 10px; font-size: 16px; font-weight: 700;
+    letter-spacing: 0.5px; cursor: pointer; transition: all 0.15s;
+  }
+  .go-btn:hover { background: var(--accent); transform: translateY(-1px); }
+  .go-btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; transform: none; }
+
+  .right-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .right-header h2 { margin: 0; font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
+
+  .status-box {
+    display: none;
+    align-items: center; gap: 16px;
+    background: linear-gradient(135deg, #1a2230, #161d28);
+    border: 1px solid var(--accent-strong);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 14px;
+    box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.08), 0 8px 24px -8px rgba(52, 211, 153, 0.25);
+  }
+  .status-box.show { display: flex; }
+  .status-box.idle { background: var(--panel); border-color: var(--border); box-shadow: none; }
+  .status-box.idle .spinner { display: none; }
+  .spinner {
+    flex-shrink: 0;
+    width: 22px; height: 22px;
+    border: 2.5px solid rgba(110, 231, 183, 0.18);
+    border-top-color: var(--accent-strong);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .status-content { flex: 1; min-width: 0; }
+  .status-text { font-size: 15px; font-weight: 600; color: var(--text); }
+  .status-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .status-percent {
+    font-size: 22px; font-weight: 700; color: var(--accent);
+    font-variant-numeric: tabular-nums; min-width: 60px; text-align: right;
+  }
+
+  .progress-bar {
+    height: 8px; background: var(--panel); border-radius: 4px;
+    overflow: hidden; margin-bottom: 18px;
+    border: 1px solid var(--border);
+  }
+  .progress-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--accent-strong), var(--accent));
+    transition: width 0.4s ease;
+    box-shadow: 0 0 12px rgba(52, 211, 153, 0.6);
+  }
+
+  #transcript {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px; min-height: 280px;
+    font-family: ui-monospace, "SF Mono", Menlo, Monaco, monospace; font-size: 13px; line-height: 1.65;
+    white-space: pre-wrap; word-wrap: break-word;
+  }
+  #transcript .speaker-line { color: var(--accent); font-weight: 600; margin-top: 12px; }
+  #transcript .speaker-line:first-child { margin-top: 0; }
+  #transcript .text-line { color: var(--text); margin-left: 18px; }
+  #transcript .plain-line { color: var(--text); }
+  #transcript .ts { color: var(--muted); font-size: 11px; margin-right: 8px; }
+
+  .done-banner {
+    margin-top: 18px; padding: 18px; background: linear-gradient(135deg, #134e3a, #0f3a2c);
+    border: 1px solid var(--accent-strong); border-radius: 10px;
+    font-size: 15px; font-weight: 600; color: var(--accent); text-align: center;
+    display: none;
+  }
+  .done-banner.error { background: #3a1414; border-color: var(--danger); color: var(--danger); }
+  .done-banner.show { display: block; }
+
+  .speakers-panel { margin-top: 18px; padding: 18px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; display: none; }
+  .speakers-panel.show { display: block; }
+  .speakers-panel h3 { margin: 0 0 4px 0; font-size: 14px; }
+  .speakers-panel .hint { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
+  .speaker-row { display: grid; grid-template-columns: 100px 1fr 1fr; gap: 12px; align-items: center; margin-bottom: 10px; }
+  .speaker-row .label { font-weight: 600; color: var(--accent); }
+  .speaker-row audio { width: 100%; height: 32px; }
+
+  .download-row { margin-top: 18px; display: flex; gap: 10px; flex-wrap: wrap; display: none; }
+  .download-row.show { display: flex; }
+  .download-btn {
+    padding: 10px 18px; background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
+    font-size: 13px; font-weight: 500; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s;
+  }
+  .download-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .download-btn.primary { background: var(--accent-strong); color: #0a0f14; border-color: var(--accent-strong); font-weight: 600; }
+  .download-btn.primary:hover { background: var(--accent); color: #0a0f14; }
+
+  .apply-btn {
+    padding: 10px 18px; background: var(--accent-strong); color: #0a0f14;
+    border: none; border-radius: 8px; cursor: pointer; font-weight: 600;
+    margin-top: 8px;
+  }
+  .apply-btn:hover { background: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Clo</h1>
+  <span class="sub">Transcription audio locale</span>
+</header>
+
+<div class="layout">
+
+  <aside class="left">
+    <div class="field">
+      <label>Fichier audio</label>
+      <label class="file-drop" id="fileDrop">
+        <div>📁 Cliquer ou glisser un fichier</div>
+        <div class="hint">mp3, wav, m4a, flac, ogg…</div>
+        <div class="filename" id="filename"></div>
+        <input type="file" id="fileInput" accept="audio/*,video/*" />
+      </label>
+    </div>
+
+    <div class="field">
+      <label>Langue</label>
+      <select id="language">
+        <option value="fr" selected>Français</option>
+        <option value="en">Anglais</option>
+        <option value="es">Espagnol</option>
+        <option value="de">Allemand</option>
+        <option value="it">Italien</option>
+        <option value="pt">Portugais</option>
+        <option value="auto">Auto-détection</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Modèle Whisper</label>
+      <select id="model">
+        <option value="tiny">tiny — très rapide, qualité faible</option>
+        <option value="base">base — rapide</option>
+        <option value="small" selected>small — équilibré (défaut)</option>
+        <option value="medium">medium — qualité++</option>
+        <option value="large-v3">large-v3 — meilleur, plus lent</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label class="toggle">
+        <input type="checkbox" id="diarize" />
+        <span>Identifier les locuteurs (diarisation)</span>
+      </label>
+    </div>
+
+    <div class="field">
+      <label class="toggle">
+        <input type="checkbox" id="vad" checked />
+        <span>Filtre VAD (sauter les silences)</span>
+      </label>
+    </div>
+
+    <button id="goBtn" class="go-btn" disabled>GO</button>
+  </aside>
+
+  <main class="right">
+    <div class="right-header">
+      <h2>Transcription</h2>
+    </div>
+
+    <div id="statusBox" class="status-box">
+      <div class="spinner"></div>
+      <div class="status-content">
+        <div class="status-text" id="statusText">En attente…</div>
+        <div class="status-meta" id="statusMeta"></div>
+      </div>
+      <div class="status-percent" id="statusPercent">0%</div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+    <div id="transcript"></div>
+
+    <div id="doneBanner" class="done-banner"></div>
+
+    <div id="speakersPanel" class="speakers-panel">
+      <h3>Nommer les locuteurs (optionnel)</h3>
+      <div class="hint">Écoute un échantillon de chaque voix et attribue un nom. Laisse vide pour garder « Speaker N ».</div>
+      <div id="speakersList"></div>
+      <button id="applyBtn" class="apply-btn">Appliquer les noms</button>
+    </div>
+
+    <div id="downloadRow" class="download-row">
+      <a class="download-btn primary" id="dlZip" href="#" download>⬇ ZIP (txt + srt)</a>
+      <a class="download-btn" id="dlTxt" href="#" download>txt</a>
+      <a class="download-btn" id="dlSrt" href="#" download>srt</a>
+    </div>
+  </main>
+
+</div>
+
+<script>
+const els = {
+  fileDrop: document.getElementById("fileDrop"),
+  fileInput: document.getElementById("fileInput"),
+  filename: document.getElementById("filename"),
+  language: document.getElementById("language"),
+  model: document.getElementById("model"),
+  diarize: document.getElementById("diarize"),
+  vad: document.getElementById("vad"),
+  goBtn: document.getElementById("goBtn"),
+  statusBox: document.getElementById("statusBox"),
+  statusText: document.getElementById("statusText"),
+  statusMeta: document.getElementById("statusMeta"),
+  statusPercent: document.getElementById("statusPercent"),
+  progressFill: document.getElementById("progressFill"),
+  transcript: document.getElementById("transcript"),
+  doneBanner: document.getElementById("doneBanner"),
+  speakersPanel: document.getElementById("speakersPanel"),
+  speakersList: document.getElementById("speakersList"),
+  applyBtn: document.getElementById("applyBtn"),
+  downloadRow: document.getElementById("downloadRow"),
+  dlZip: document.getElementById("dlZip"),
+  dlTxt: document.getElementById("dlTxt"),
+  dlSrt: document.getElementById("dlSrt"),
+};
+
+let selectedFile = null;
+let currentJobId = null;
+let currentEventSource = null;
+let currentSpeakerInLine = null;
+let lastSegmentIndex = 0;
+let wakeLock = null;
+let jobInProgress = false;
+let currentMeta = "";
+
+function setStatus(text, { idle = false, percent = null, meta = null } = {}) {
+  els.statusBox.classList.add("show");
+  els.statusBox.classList.toggle("idle", idle);
+  els.statusText.textContent = text;
+  if (meta !== null) { currentMeta = meta; els.statusMeta.textContent = meta; }
+  if (percent !== null) {
+    els.statusPercent.textContent = Math.round(percent) + "%";
+    els.progressFill.style.width = percent + "%";
+  }
+}
+
+function hideStatus() {
+  els.statusBox.classList.remove("show");
+  els.progressFill.style.width = "0%";
+  currentMeta = "";
+}
+
+function fmtTime(t) {
+  const ms = Math.round(t * 1000);
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+}
+
+async function acquireWakeLock() {
+  if (!("wakeLock" in navigator)) return;
+  try {
+    wakeLock = await navigator.wakeLock.request("screen");
+    wakeLock.addEventListener("release", () => { wakeLock = null; });
+  } catch (e) {
+    console.warn("WakeLock indisponible :", e.message);
+  }
+}
+async function releaseWakeLock() {
+  if (wakeLock) { try { await wakeLock.release(); } catch (e) {} wakeLock = null; }
+}
+document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState === "visible" && jobInProgress && !wakeLock) {
+    await acquireWakeLock();
+  }
+});
+
+["dragenter","dragover"].forEach(ev => els.fileDrop.addEventListener(ev, e => {
+  e.preventDefault(); els.fileDrop.classList.add("dragover");
+}));
+["dragleave","drop"].forEach(ev => els.fileDrop.addEventListener(ev, e => {
+  e.preventDefault(); els.fileDrop.classList.remove("dragover");
+}));
+els.fileDrop.addEventListener("drop", e => {
+  if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
+});
+els.fileInput.addEventListener("change", e => {
+  if (e.target.files.length) setFile(e.target.files[0]);
+});
+
+function setFile(file) {
+  selectedFile = file;
+  els.filename.textContent = file.name;
+  els.goBtn.disabled = false;
+}
+
+els.goBtn.addEventListener("click", async () => {
+  if (!selectedFile) return;
+  resetUI();
+  els.goBtn.disabled = true;
+  setStatus("Envoi du fichier…", { meta: selectedFile.name });
+
+  const fd = new FormData();
+  fd.append("file", selectedFile);
+  let res;
+  try {
+    res = await fetch("/upload", { method: "POST", body: fd });
+  } catch (e) { showError("Erreur upload : " + e.message); els.goBtn.disabled = false; return; }
+  if (!res.ok) { showError("Erreur upload : " + res.statusText); els.goBtn.disabled = false; return; }
+  const { job_id } = await res.json();
+  currentJobId = job_id;
+  localStorage.setItem("lastJobId", job_id);
+
+  setStatus("Démarrage du job…", { meta: selectedFile.name });
+
+  const params = new URLSearchParams({
+    model: els.model.value,
+    language: els.language.value,
+    diarize: els.diarize.checked,
+    vad: els.vad.checked,
+  });
+  try {
+    const startRes = await fetch(`/start/${job_id}?${params}`, { method: "POST" });
+    if (!startRes.ok) throw new Error(startRes.statusText);
+  } catch (e) { showError("Erreur démarrage : " + e.message); els.goBtn.disabled = false; return; }
+
+  jobInProgress = true;
+  await acquireWakeLock();
+  subscribe(job_id);
+});
+
+function subscribe(jobId) {
+  if (currentEventSource) currentEventSource.close();
+  currentEventSource = new EventSource(`/events/${jobId}`);
+  currentEventSource.onmessage = (e) => handleEvent(JSON.parse(e.data));
+  currentEventSource.onerror = () => {
+    if (currentEventSource.readyState === EventSource.CONNECTING) {
+      setStatus("Reconnexion…", { meta: currentMeta });
+    }
+  };
+}
+
+function resetUI() {
+  hideStatus();
+  els.transcript.innerHTML = "";
+  els.doneBanner.className = "done-banner";
+  els.doneBanner.textContent = "";
+  els.speakersPanel.classList.remove("show");
+  els.speakersList.innerHTML = "";
+  els.downloadRow.classList.remove("show");
+  currentSpeakerInLine = null;
+  lastSegmentIndex = 0;
+}
+
+function showError(msg) {
+  els.doneBanner.classList.add("show", "error");
+  els.doneBanner.textContent = "❌ " + msg;
+  jobInProgress = false;
+  releaseWakeLock();
+}
+
+function handleEvent(ev) {
+  if (ev.type === "status") {
+    setStatus(ev.message, { meta: currentMeta });
+  } else if (ev.type === "info") {
+    const meta = `Langue : ${ev.language} (${(ev.language_probability*100).toFixed(0)}%) · Durée : ${fmtTime(ev.duration)}` +
+      (ev.n_speakers ? ` · ${ev.n_speakers} locuteur(s)` : "");
+    setStatus("Transcription en cours…", { meta, percent: 0 });
+  } else if (ev.type === "segment") {
+    appendSegment(ev);
+    setStatus("Transcription en cours…", { meta: currentMeta, percent: ev.progress });
+  } else if (ev.type === "done") {
+    finishJob(ev);
+  } else if (ev.type === "error") {
+    showError(ev.message);
+    els.goBtn.disabled = false;
+    if (currentEventSource) currentEventSource.close();
+  }
+}
+
+function appendSegment(seg) {
+  if (seg.index <= lastSegmentIndex) return; // dédoublonnage en cas de replay
+  lastSegmentIndex = seg.index;
+  const ts = fmtTime(seg.start);
+  if (seg.speaker) {
+    if (seg.speaker !== currentSpeakerInLine) {
+      const head = document.createElement("div");
+      head.className = "speaker-line";
+      head.textContent = seg.speaker + " :";
+      els.transcript.appendChild(head);
+      currentSpeakerInLine = seg.speaker;
+    }
+    const line = document.createElement("div");
+    line.className = "text-line";
+    line.innerHTML = `<span class="ts">${ts}</span>${escapeHtml(seg.text)}`;
+    els.transcript.appendChild(line);
+  } else {
+    const line = document.createElement("div");
+    line.className = "plain-line";
+    line.innerHTML = `<span class="ts">${ts}</span>${escapeHtml(seg.text)}`;
+    els.transcript.appendChild(line);
+  }
+  const right = document.querySelector(".right");
+  right.scrollTop = right.scrollHeight;
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+
+function finishJob(ev) {
+  if (currentEventSource) currentEventSource.close();
+  setStatus("Terminé", { idle: true, percent: 100, meta: currentMeta });
+  els.doneBanner.classList.add("show");
+  els.doneBanner.textContent = "✅ Transcription terminée";
+  els.goBtn.disabled = false;
+  jobInProgress = false;
+  releaseWakeLock();
+  localStorage.removeItem("lastJobId");
+
+  if (ev.downloads) {
+    els.dlZip.href = ev.downloads.zip;
+    els.dlTxt.href = ev.downloads.txt;
+    els.dlSrt.href = ev.downloads.srt;
+    els.downloadRow.classList.add("show");
+  }
+
+  if (ev.speakers && ev.speakers.length) {
+    renderSpeakers(ev.speakers);
+  }
+}
+
+// Reprise automatique au chargement si un job est encore en cours côté serveur
+window.addEventListener("load", async () => {
+  const lastJobId = localStorage.getItem("lastJobId");
+  if (!lastJobId) return;
+  try {
+    const res = await fetch(`/job/${lastJobId}`);
+    if (!res.ok) { localStorage.removeItem("lastJobId"); return; }
+    const info = await res.json();
+    if (info.status === "running" || info.status === "pending") {
+      currentJobId = lastJobId;
+      setStatus(`Reprise : ${info.filename}`, { meta: `${info.n_segments} segments déjà transcrits` });
+      els.goBtn.disabled = true;
+      jobInProgress = true;
+      await acquireWakeLock();
+      subscribe(lastJobId);
+    } else if (info.status === "done") {
+      currentJobId = lastJobId;
+      setStatus("Chargement du job précédent…", { meta: info.filename });
+      subscribe(lastJobId);
+    } else {
+      localStorage.removeItem("lastJobId");
+    }
+  } catch (e) {
+    localStorage.removeItem("lastJobId");
+  }
+});
+
+function renderSpeakers(speakers) {
+  els.speakersList.innerHTML = "";
+  speakers.forEach(spk => {
+    const row = document.createElement("div");
+    row.className = "speaker-row";
+    row.innerHTML = `
+      <div class="label">${spk.label}</div>
+      <audio controls src="${spk.sample_url}" preload="none"></audio>
+      <input type="text" data-label="${spk.label}" placeholder="Nom (ex: Marc)" />
+    `;
+    els.speakersList.appendChild(row);
+  });
+  els.speakersPanel.classList.add("show");
+}
+
+els.applyBtn.addEventListener("click", async () => {
+  if (!currentJobId) return;
+  const map = {};
+  els.speakersList.querySelectorAll("input[data-label]").forEach(inp => {
+    const v = inp.value.trim();
+    if (v) map[inp.dataset.label] = v;
+  });
+  els.applyBtn.disabled = true;
+  els.applyBtn.textContent = "Application…";
+  try {
+    const res = await fetch(`/rename/${currentJobId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(map),
+    });
+    if (!res.ok) throw new Error(res.statusText);
+    // Re-render le transcript avec les noms
+    els.transcript.querySelectorAll(".speaker-line").forEach(el => {
+      const original = el.textContent.replace(/ :$/, "");
+      if (map[original]) el.textContent = map[original] + " :";
+    });
+    els.applyBtn.textContent = "✓ Appliqué";
+    setTimeout(() => { els.applyBtn.textContent = "Appliquer les noms"; els.applyBtn.disabled = false; }, 1500);
+  } catch (e) {
+    els.applyBtn.textContent = "Erreur";
+    els.applyBtn.disabled = false;
+  }
+});
+</script>
+
+</body>
+</html>

@@ -1,6 +1,6 @@
 # Clo — Transcription audio locale
 
-Mini-CLI Python pour transcrire des fichiers audio (réunions, entretiens, etc.) en local avec [faster-whisper](https://github.com/SYSTRAN/faster-whisper). Optionnellement, sépare les locuteurs (`Speaker 1`, `Speaker 2`, ...) via [pyannote.audio](https://github.com/pyannote/pyannote-audio).
+Mini-app Python (CLI **et** interface web) pour transcrire des fichiers audio (réunions, entretiens, etc.) en local avec [faster-whisper](https://github.com/SYSTRAN/faster-whisper). Optionnellement, sépare les locuteurs (`Speaker 1`, `Speaker 2`, ...) via [pyannote.audio](https://github.com/pyannote/pyannote-audio) puis permet de leur donner un vrai nom.
 
 100% local, gratuit, hors-ligne (sauf 1er téléchargement des modèles).
 
@@ -19,7 +19,22 @@ cp .env.example .env
 
 `ffmpeg` doit être disponible sur le système (`brew install ffmpeg` sur macOS).
 
-## Utilisation
+## Interface web
+
+```bash
+python server.py
+```
+
+Puis ouvre http://127.0.0.1:8000
+
+L'interface permet :
+- de glisser un fichier audio
+- de choisir langue, modèle, diarisation, VAD
+- de voir la transcription apparaître **en direct** au fur et à mesure
+- (si diarisation) d'**écouter un échantillon de chaque locuteur** et de leur donner un nom
+- de télécharger `.txt`, `.srt` ou un `.zip` des deux
+
+## Utilisation en CLI
 
 ```
 .
@@ -104,11 +119,15 @@ Sur Mac M1/M2 (CPU, modèle `small`), comptez environ :
 
 ```
 .
-├── transcribe.py       # CLI
+├── core.py             # logique partagée (whisper + pyannote + streaming)
+├── transcribe.py       # CLI batch (input/ -> output/)
+├── server.py           # serveur FastAPI (interface web)
+├── static/index.html   # interface web
 ├── requirements.txt
 ├── .env                # secrets locaux (ignoré par git)
 ├── .env.example        # template
 ├── .gitignore
-├── input/              # fichiers audio à traiter
-└── output/             # transcriptions générées
+├── input/              # fichiers audio à traiter (mode CLI)
+├── output/             # transcriptions générées
+└── uploads/            # uploads temporaires (mode web, ignoré par git)
 ```

@@ -16,6 +16,7 @@ input/*
 !input/.gitkeep
 output/*
 !output/.gitkeep
+uploads/
 
 # Modèles téléchargés (cache HF / faster-whisper)
 .cache/
