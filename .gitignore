@@ -1,0 +1,30 @@
+# Secrets
+.env
+
+# Virtualenv
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Audio entrant et transcriptions sortantes
+input/*
+!input/.gitkeep
+output/*
+!output/.gitkeep
+
+# Modèles téléchargés (cache HF / faster-whisper)
+.cache/
+*.bin
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
