@@ -48,10 +48,11 @@ def load_audio_for_pyannote(audio_path: Path, sample_rate: int = 16000):
 
 def diarize(audio: Path, pipeline):
     audio_input = load_audio_for_pyannote(audio)
-    diarization = pipeline(audio_input)
+    output = pipeline(audio_input)
+    annotation = getattr(output, "exclusive_speaker_diarization", None) or getattr(output, "speaker_diarization", output)
     turns = []
     raw_labels = []
-    for turn, _, speaker in diarization.itertracks(yield_label=True):
+    for turn, _, speaker in annotation.itertracks(yield_label=True):
         turns.append((turn.start, turn.end, speaker))
         if speaker not in raw_labels:
             raw_labels.append(speaker)
