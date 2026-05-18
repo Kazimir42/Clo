@@ -3,99 +3,178 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Clo — Transcription audio</title>
+<title>Clo · Transcription audio ✿</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0f1115;
-    --panel: #161a22;
-    --panel-2: #1d222c;
-    --border: #262c38;
-    --text: #e7e9ee;
-    --muted: #8a93a6;
-    --accent: #6ee7b7;
-    --accent-strong: #34d399;
-    --danger: #f87171;
-    --warning: #fbbf24;
+    --bg: #fdf4f1;
+    --bg-2: #fbe7e0;
+    --panel: #ffffff;
+    --panel-2: #fdf0eb;
+    --border: #f3d4c8;
+    --border-soft: #fae5dc;
+    --text: #4a2c3a;
+    --text-soft: #7a5266;
+    --muted: #b08a99;
+    --accent: #ec4899;        /* rose vif */
+    --accent-strong: #db2777; /* rose magenta */
+    --accent-soft: #fbcfe8;   /* rose pastel */
+    --gold: #d4a574;          /* champagne */
+    --mint: #b8e0d2;          /* touche menthe */
+    --danger: #e85a4f;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; overflow: hidden; }
+  html, body { margin: 0; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: var(--bg); color: var(--text);
-    font-size: 14px; line-height: 1.5;
+    font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text);
+    font-size: 14px; line-height: 1.55;
+    min-height: 100vh;
     display: flex; flex-direction: column;
+    background:
+      radial-gradient(circle at 0% 0%, #fde2dd 0%, transparent 45%),
+      radial-gradient(circle at 100% 100%, #f8d7e3 0%, transparent 50%),
+      radial-gradient(circle at 80% 10%, #fce4d6 0%, transparent 40%),
+      var(--bg);
+    background-attachment: fixed;
   }
+
   header {
-    flex-shrink: 0;
-    padding: 18px 24px; border-bottom: 1px solid var(--border);
-    display: flex; align-items: baseline; gap: 16px;
+    padding: 22px 32px;
+    border-bottom: 1px solid var(--border-soft);
+    display: flex; align-items: baseline; gap: 14px;
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(8px);
+    position: sticky; top: 0; z-index: 10;
   }
-  header h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: 0.3px; }
-  header .sub { color: var(--muted); font-size: 12px; }
-
-  .layout { display: grid; grid-template-columns: 360px 1fr; gap: 0; flex: 1; min-height: 0; }
-  .left, .right { padding: 24px; overflow-y: auto; min-height: 0; }
-  .left { border-right: 1px solid var(--border); background: var(--panel); }
-
-  /* Scrollbars sobres en dark mode */
-  .left::-webkit-scrollbar, .right::-webkit-scrollbar { width: 10px; }
-  .left::-webkit-scrollbar-track, .right::-webkit-scrollbar-track { background: transparent; }
-  .left::-webkit-scrollbar-thumb, .right::-webkit-scrollbar-thumb {
-    background: var(--border); border-radius: 5px; border: 2px solid transparent; background-clip: padding-box;
+  header h1 {
+    margin: 0;
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 28px; font-weight: 700;
+    background: linear-gradient(120deg, var(--accent-strong), var(--accent), var(--gold));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
   }
-  .left::-webkit-scrollbar-thumb:hover, .right::-webkit-scrollbar-thumb:hover { background: #3a4252; background-clip: padding-box; border: 2px solid transparent; }
+  header .sub {
+    color: var(--text-soft); font-size: 13px;
+    font-family: "Fraunces", Georgia, serif; font-style: italic; font-weight: 400;
+  }
+  header .heart { color: var(--accent); font-size: 14px; }
 
-  .field { margin-bottom: 18px; }
-  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .layout { display: grid; grid-template-columns: 380px 1fr; gap: 0; flex: 1; }
+  .left, .right { padding: 28px; }
+  .left {
+    border-right: 1px solid var(--border-soft);
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(6px);
+  }
+
+  @media (max-width: 820px) {
+    .layout { grid-template-columns: 1fr; }
+    .left { border-right: none; border-bottom: 1px solid var(--border-soft); }
+  }
+
+  /* Scrollbars douces */
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--accent-soft); border-radius: 8px;
+    border: 2px solid transparent; background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent); background-clip: padding-box; border: 2px solid transparent; }
+
+  .field { margin-bottom: 20px; }
+  label {
+    display: block; font-size: 11px;
+    color: var(--text-soft); margin-bottom: 8px;
+    text-transform: uppercase; letter-spacing: 1.2px; font-weight: 600;
+  }
   input[type="text"], select {
-    width: 100%; padding: 9px 12px; background: var(--panel-2); color: var(--text);
-    border: 1px solid var(--border); border-radius: 8px; font-size: 14px;
-    outline: none; transition: border-color 0.15s;
+    width: 100%; padding: 11px 14px;
+    background: #ffffff; color: var(--text);
+    border: 1.5px solid var(--border); border-radius: 12px;
+    font-size: 14px; font-family: inherit;
+    outline: none; transition: all 0.2s;
   }
-  input[type="text"]:focus, select:focus { border-color: var(--accent); }
+  input[type="text"]:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.12);
+  }
 
   .file-drop {
-    border: 1.5px dashed var(--border); border-radius: 10px; padding: 22px 14px;
-    text-align: center; cursor: pointer; transition: all 0.15s;
-    background: var(--panel-2);
+    border: 2px dashed var(--accent-soft); border-radius: 16px; padding: 26px 16px;
+    text-align: center; cursor: pointer; transition: all 0.2s;
+    background: linear-gradient(135deg, #ffffff 0%, var(--panel-2) 100%);
   }
-  .file-drop:hover, .file-drop.dragover { border-color: var(--accent); background: #1a2230; }
-  .file-drop .filename { font-weight: 500; color: var(--accent); margin-top: 6px; }
-  .file-drop .hint { color: var(--muted); font-size: 12px; }
+  .file-drop:hover, .file-drop.dragover {
+    border-color: var(--accent); background: #fff6f9;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px -10px rgba(236, 72, 153, 0.35);
+  }
+  .file-drop .filename {
+    font-weight: 600; color: var(--accent-strong); margin-top: 8px;
+    font-size: 14px;
+  }
+  .file-drop .hint { color: var(--muted); font-size: 12px; margin-top: 4px; }
   input[type="file"] { display: none; }
 
-  .toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
-  .toggle input { accent-color: var(--accent-strong); width: 16px; height: 16px; }
+  .toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; color: var(--text); font-weight: 500; }
+  .toggle input { accent-color: var(--accent); width: 17px; height: 17px; cursor: pointer; }
 
   .go-btn {
-    width: 100%; padding: 16px; margin-top: 8px;
-    background: var(--accent-strong); color: #0a0f14;
-    border: none; border-radius: 10px; font-size: 16px; font-weight: 700;
-    letter-spacing: 0.5px; cursor: pointer; transition: all 0.15s;
+    width: 100%; padding: 18px; margin-top: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    color: #ffffff;
+    border: none; border-radius: 16px;
+    font-size: 17px; font-weight: 700;
+    font-family: "Fraunces", Georgia, serif;
+    letter-spacing: 1.5px; cursor: pointer;
+    transition: all 0.25s;
+    box-shadow: 0 10px 24px -8px rgba(236, 72, 153, 0.5);
   }
-  .go-btn:hover { background: var(--accent); transform: translateY(-1px); }
-  .go-btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; transform: none; }
+  .go-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px -8px rgba(236, 72, 153, 0.6);
+  }
+  .go-btn:active { transform: translateY(0); }
+  .go-btn:disabled {
+    background: #f0e0e8; color: var(--muted);
+    cursor: not-allowed; transform: none; box-shadow: none;
+  }
 
-  .right-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-  .right-header h2 { margin: 0; font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
+  .right-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+  .right-header h2 {
+    margin: 0; font-family: "Fraunces", Georgia, serif;
+    font-size: 22px; font-weight: 600; color: var(--text);
+    font-style: italic;
+  }
+  .right-header h2::before { content: "✿ "; color: var(--accent); font-style: normal; }
 
   .status-box {
     display: none;
-    align-items: center; gap: 16px;
-    background: linear-gradient(135deg, #1a2230, #161d28);
-    border: 1px solid var(--accent-strong);
-    border-radius: 12px;
-    padding: 16px 20px;
+    align-items: center; gap: 18px;
+    background: linear-gradient(135deg, #fff5f9 0%, #fde7f0 100%);
+    border: 1.5px solid var(--accent-soft);
+    border-radius: 18px;
+    padding: 18px 22px;
     margin-bottom: 14px;
-    box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.08), 0 8px 24px -8px rgba(52, 211, 153, 0.25);
+    box-shadow: 0 8px 28px -12px rgba(236, 72, 153, 0.3);
   }
   .status-box.show { display: flex; }
-  .status-box.idle { background: var(--panel); border-color: var(--border); box-shadow: none; }
+  .status-box.idle {
+    background: linear-gradient(135deg, #fff 0%, #fdf2ec 100%);
+    border-color: var(--border);
+    box-shadow: 0 4px 14px -8px rgba(184, 224, 210, 0.4);
+  }
   .status-box.idle .spinner { display: none; }
   .spinner {
     flex-shrink: 0;
-    width: 22px; height: 22px;
-    border: 2.5px solid rgba(110, 231, 183, 0.18);
+    width: 24px; height: 24px;
+    border: 3px solid var(--accent-soft);
     border-top-color: var(--accent-strong);
     border-radius: 50%;
     animation: spin 0.9s linear infinite;
@@ -103,78 +182,174 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .status-content { flex: 1; min-width: 0; }
   .status-text { font-size: 15px; font-weight: 600; color: var(--text); }
-  .status-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .status-meta { font-size: 12.5px; color: var(--text-soft); margin-top: 3px; }
   .status-percent {
-    font-size: 22px; font-weight: 700; color: var(--accent);
-    font-variant-numeric: tabular-nums; min-width: 60px; text-align: right;
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 26px; font-weight: 700; color: var(--accent-strong);
+    font-variant-numeric: tabular-nums; min-width: 64px; text-align: right;
   }
 
   .progress-bar {
-    height: 8px; background: var(--panel); border-radius: 4px;
-    overflow: hidden; margin-bottom: 18px;
-    border: 1px solid var(--border);
+    height: 10px; background: #fff; border-radius: 6px;
+    overflow: hidden; margin-bottom: 22px;
+    border: 1px solid var(--border-soft);
   }
   .progress-fill {
     height: 100%; width: 0%;
-    background: linear-gradient(90deg, var(--accent-strong), var(--accent));
+    background: linear-gradient(90deg, var(--accent-soft), var(--accent), var(--accent-strong));
     transition: width 0.4s ease;
-    box-shadow: 0 0 12px rgba(52, 211, 153, 0.6);
+    box-shadow: 0 0 14px rgba(236, 72, 153, 0.5);
+    border-radius: 6px;
   }
 
   #transcript {
-    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
-    padding: 18px; min-height: 280px;
-    font-family: ui-monospace, "SF Mono", Menlo, Monaco, monospace; font-size: 13px; line-height: 1.65;
+    background: #ffffff;
+    border: 1px solid var(--border-soft);
+    border-radius: 18px;
+    padding: 24px 26px;
+    height: 500px; overflow-y: auto;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 14.5px; line-height: 1.75;
     white-space: pre-wrap; word-wrap: break-word;
+    color: var(--text);
+    box-shadow: 0 4px 24px -16px rgba(192, 132, 152, 0.4);
   }
-  #transcript .speaker-line { color: var(--accent); font-weight: 600; margin-top: 12px; }
+  #transcript:empty::before {
+    content: "✨ La transcription apparaîtra ici…";
+    color: var(--muted); font-style: italic;
+  }
+  #transcript .speaker-line {
+    color: var(--accent-strong); font-weight: 700;
+    margin-top: 18px; padding-bottom: 4px;
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 15px; font-style: italic;
+    border-bottom: 1px dashed var(--accent-soft);
+    display: inline-block;
+  }
   #transcript .speaker-line:first-child { margin-top: 0; }
-  #transcript .text-line { color: var(--text); margin-left: 18px; }
-  #transcript .plain-line { color: var(--text); }
-  #transcript .ts { color: var(--muted); font-size: 11px; margin-right: 8px; }
+  #transcript .text-line, #transcript .plain-line {
+    color: var(--text);
+    padding: 2px 0;
+  }
+  #transcript .text-line { margin-left: 4px; padding-left: 14px; border-left: 2px solid var(--accent-soft); }
+  #transcript .seg-text { /* inline */ }
+  #transcript .ts {
+    color: var(--muted); font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    background: var(--panel-2); padding: 1px 6px; border-radius: 4px;
+    margin-right: 6px;
+  }
+
+  .edit-speaker-btn {
+    display: inline-block; vertical-align: baseline;
+    background: transparent; border: none; cursor: pointer;
+    color: var(--muted); font-size: 13px;
+    padding: 0 6px; margin-left: 6px;
+    border-radius: 6px; line-height: 1;
+    opacity: 0; transition: opacity 0.15s, color 0.15s, background 0.15s;
+  }
+  #transcript .text-line:hover .edit-speaker-btn,
+  #transcript .plain-line:hover .edit-speaker-btn { opacity: 1; }
+  .edit-speaker-btn:hover { color: var(--accent-strong); background: var(--accent-soft); }
+  .edit-speaker-btn:focus { opacity: 1; outline: none; color: var(--accent-strong); }
+
+  .edit-speaker-select {
+    display: inline-block; vertical-align: baseline;
+    width: auto; max-width: 180px;
+    margin-left: 6px;
+    font-family: inherit; font-size: 12px;
+    padding: 2px 8px; border-radius: 8px;
+    border: 1.5px solid var(--accent); background: white;
+    color: var(--accent-strong); font-weight: 600;
+    outline: none; cursor: pointer;
+  }
+  .edit-speaker-select:focus { box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.15); }
 
   .done-banner {
-    margin-top: 18px; padding: 18px; background: linear-gradient(135deg, #134e3a, #0f3a2c);
-    border: 1px solid var(--accent-strong); border-radius: 10px;
-    font-size: 15px; font-weight: 600; color: var(--accent); text-align: center;
-    display: none;
+    margin-top: 20px; padding: 20px 24px;
+    background: linear-gradient(135deg, #fce7f3 0%, #ffe4f0 50%, #fff0e6 100%);
+    border: 1.5px solid var(--accent-soft);
+    border-radius: 18px;
+    font-family: "Fraunces", Georgia, serif;
+    font-size: 18px; font-weight: 600; color: var(--accent-strong);
+    text-align: center; display: none;
+    box-shadow: 0 8px 28px -12px rgba(236, 72, 153, 0.3);
   }
-  .done-banner.error { background: #3a1414; border-color: var(--danger); color: var(--danger); }
+  .done-banner.error {
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+    border-color: var(--danger); color: var(--danger);
+  }
   .done-banner.show { display: block; }
 
-  .speakers-panel { margin-top: 18px; padding: 18px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; display: none; }
+  .speakers-panel {
+    margin-top: 20px; padding: 24px;
+    background: #ffffff;
+    border: 1px solid var(--border-soft); border-radius: 18px;
+    display: none;
+    box-shadow: 0 4px 24px -16px rgba(192, 132, 152, 0.4);
+  }
   .speakers-panel.show { display: block; }
-  .speakers-panel h3 { margin: 0 0 4px 0; font-size: 14px; }
-  .speakers-panel .hint { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
-  .speaker-row { display: grid; grid-template-columns: 100px 1fr 1fr; gap: 12px; align-items: center; margin-bottom: 10px; }
-  .speaker-row .label { font-weight: 600; color: var(--accent); }
-  .speaker-row audio { width: 100%; height: 32px; }
+  .speakers-panel h3 {
+    margin: 0 0 6px 0; font-family: "Fraunces", Georgia, serif;
+    font-size: 18px; font-weight: 600; color: var(--text);
+  }
+  .speakers-panel h3::before { content: "♡ "; color: var(--accent); }
+  .speakers-panel .hint { color: var(--text-soft); font-size: 13px; margin-bottom: 16px; }
+  .speaker-row {
+    display: grid; grid-template-columns: 110px 1fr 1fr; gap: 14px;
+    align-items: center; margin-bottom: 12px;
+    padding: 10px; border-radius: 12px;
+    background: var(--panel-2);
+  }
+  .speaker-row .label {
+    font-weight: 700; color: var(--accent-strong);
+    font-family: "Fraunces", Georgia, serif; font-style: italic;
+  }
+  .speaker-row audio { width: 100%; height: 34px; }
 
-  .download-row { margin-top: 18px; display: flex; gap: 10px; flex-wrap: wrap; display: none; }
+  .download-row { margin-top: 20px; gap: 12px; flex-wrap: wrap; display: none; }
   .download-row.show { display: flex; }
   .download-btn {
-    padding: 10px 18px; background: var(--panel-2); color: var(--text);
-    border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
-    font-size: 13px; font-weight: 500; text-decoration: none;
-    display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s;
+    padding: 12px 22px; background: #ffffff; color: var(--text);
+    border: 1.5px solid var(--border); border-radius: 14px; cursor: pointer;
+    font-size: 13.5px; font-weight: 600; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: all 0.2s; font-family: inherit;
   }
-  .download-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .download-btn.primary { background: var(--accent-strong); color: #0a0f14; border-color: var(--accent-strong); font-weight: 600; }
-  .download-btn.primary:hover { background: var(--accent); color: #0a0f14; }
+  .download-btn:hover {
+    border-color: var(--accent); color: var(--accent-strong);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px -8px rgba(236, 72, 153, 0.3);
+  }
+  .download-btn.primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    color: #ffffff; border-color: transparent; font-weight: 700;
+    box-shadow: 0 6px 18px -6px rgba(236, 72, 153, 0.5);
+  }
+  .download-btn.primary:hover {
+    color: #ffffff;
+    box-shadow: 0 10px 24px -6px rgba(236, 72, 153, 0.6);
+  }
 
   .apply-btn {
-    padding: 10px 18px; background: var(--accent-strong); color: #0a0f14;
-    border: none; border-radius: 8px; cursor: pointer; font-weight: 600;
-    margin-top: 8px;
+    padding: 12px 22px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    color: #ffffff;
+    border: none; border-radius: 14px; cursor: pointer; font-weight: 700;
+    font-family: inherit; font-size: 14px;
+    margin-top: 10px;
+    box-shadow: 0 6px 18px -6px rgba(236, 72, 153, 0.5);
+    transition: all 0.2s;
   }
-  .apply-btn:hover { background: var(--accent); }
+  .apply-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 24px -6px rgba(236, 72, 153, 0.6); }
+  .apply-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 </style>
 </head>
 <body>
 
 <header>
   <h1>Clo</h1>
-  <span class="sub">Transcription audio locale</span>
+  <span class="sub">transcription audio</span>
 </header>
 
 <div class="layout">
@@ -183,7 +358,7 @@
     <div class="field">
       <label>Fichier audio</label>
       <label class="file-drop" id="fileDrop">
-        <div>📁 Cliquer ou glisser un fichier</div>
+        <div>✿ Choisir ou glisser un fichier</div>
         <div class="hint">mp3, wav, m4a, flac, ogg…</div>
         <div class="filename" id="filename"></div>
         <input type="file" id="fileInput" accept="audio/*,video/*" />
@@ -228,7 +403,7 @@
       </label>
     </div>
 
-    <button id="goBtn" class="go-btn" disabled>GO</button>
+    <button id="goBtn" class="go-btn" disabled>✦ Lancer la transcription ✦</button>
   </aside>
 
   <main class="right">
@@ -258,9 +433,9 @@
     </div>
 
     <div id="downloadRow" class="download-row">
-      <a class="download-btn primary" id="dlZip" href="#" download>⬇ ZIP (txt + srt)</a>
-      <a class="download-btn" id="dlTxt" href="#" download>txt</a>
-      <a class="download-btn" id="dlSrt" href="#" download>srt</a>
+      <a class="download-btn primary" id="dlZip" href="#" download>♡ Télécharger (zip)</a>
+      <a class="download-btn" id="dlTxt" href="#" download>texte seul</a>
+      <a class="download-btn" id="dlSrt" href="#" download>sous-titres</a>
     </div>
   </main>
 
@@ -300,6 +475,14 @@ let lastSegmentIndex = 0;
 let wakeLock = null;
 let jobInProgress = false;
 let currentMeta = "";
+let segments = [];          // tous les segments reçus (pour re-render après edit)
+let currentSpeakers = [];   // [{label, sample_url, ...}]
+let currentNameMap = {};    // mapping renommage : {"Speaker 1": "Marc"}
+
+function speakerDisplay(label) {
+  if (!label) return null;
+  return currentNameMap[label] || label;
+}
 
 function setStatus(text, { idle = false, percent = null, meta = null } = {}) {
   els.statusBox.classList.add("show");
@@ -419,6 +602,9 @@ function resetUI() {
   els.downloadRow.classList.remove("show");
   currentSpeakerInLine = null;
   lastSegmentIndex = 0;
+  segments = [];
+  currentSpeakers = [];
+  currentNameMap = {};
 }
 
 function showError(msg) {
@@ -450,27 +636,100 @@ function handleEvent(ev) {
 function appendSegment(seg) {
   if (seg.index <= lastSegmentIndex) return; // dédoublonnage en cas de replay
   lastSegmentIndex = seg.index;
+  segments.push({
+    index: seg.index, start: seg.start, end: seg.end,
+    text: seg.text, speaker: seg.speaker,
+  });
+  appendSegmentToDOM(seg);
+  els.transcript.scrollTop = els.transcript.scrollHeight;
+}
+
+function appendSegmentToDOM(seg) {
   const ts = fmtTime(seg.start);
   if (seg.speaker) {
-    if (seg.speaker !== currentSpeakerInLine) {
+    const display = speakerDisplay(seg.speaker);
+    if (display !== currentSpeakerInLine) {
       const head = document.createElement("div");
       head.className = "speaker-line";
-      head.textContent = seg.speaker + " :";
+      head.textContent = display + " :";
       els.transcript.appendChild(head);
-      currentSpeakerInLine = seg.speaker;
+      currentSpeakerInLine = display;
     }
     const line = document.createElement("div");
     line.className = "text-line";
-    line.innerHTML = `<span class="ts">${ts}</span>${escapeHtml(seg.text)}`;
+    line.dataset.index = seg.index;
+    line.innerHTML = `<span class="ts">${ts}</span><span class="seg-text">${escapeHtml(seg.text)}</span>`;
+    line.appendChild(makeEditButton(seg));
     els.transcript.appendChild(line);
   } else {
     const line = document.createElement("div");
     line.className = "plain-line";
-    line.innerHTML = `<span class="ts">${ts}</span>${escapeHtml(seg.text)}`;
+    line.dataset.index = seg.index;
+    line.innerHTML = `<span class="ts">${ts}</span><span class="seg-text">${escapeHtml(seg.text)}</span>`;
+    line.appendChild(makeEditButton(seg));
     els.transcript.appendChild(line);
+    currentSpeakerInLine = null;
   }
-  const right = document.querySelector(".right");
-  right.scrollTop = right.scrollHeight;
+}
+
+function renderTranscript() {
+  const prevScroll = els.transcript.scrollTop;
+  els.transcript.innerHTML = "";
+  currentSpeakerInLine = null;
+  for (const seg of segments) appendSegmentToDOM(seg);
+  els.transcript.scrollTop = prevScroll;
+}
+
+function makeEditButton(seg) {
+  const btn = document.createElement("button");
+  btn.className = "edit-speaker-btn";
+  btn.title = "Changer le locuteur";
+  btn.textContent = "✎";
+  btn.onclick = (e) => { e.stopPropagation(); openSpeakerMenu(seg.index, btn); };
+  return btn;
+}
+
+function openSpeakerMenu(index, anchor) {
+  const seg = segments[index - 1];
+  if (!seg) return;
+  const select = document.createElement("select");
+  select.className = "edit-speaker-select";
+  let html = '<option value="">— sans locuteur —</option>';
+  for (const spk of currentSpeakers) {
+    const sel = spk.label === seg.speaker ? " selected" : "";
+    html += `<option value="${spk.label}"${sel}>${speakerDisplay(spk.label)}</option>`;
+  }
+  select.innerHTML = html;
+  anchor.replaceWith(select);
+  select.focus();
+
+  const closeBack = () => { if (select.parentNode) select.replaceWith(anchor); };
+  let changeFired = false;
+
+  select.addEventListener("blur", () => {
+    // si change a été déclenché, on laisse le handler change gérer la fermeture
+    if (!changeFired) closeBack();
+  });
+
+  select.addEventListener("change", async () => {
+    changeFired = true;
+    const newSpeaker = select.value || null;
+    if (newSpeaker === seg.speaker) { closeBack(); return; }
+    try {
+      const res = await fetch(`/reassign/${currentJobId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ index, speaker: newSpeaker }),
+      });
+      if (!res.ok) throw new Error(`${res.status} ${await res.text().catch(() => res.statusText)}`);
+      segments[index - 1].speaker = newSpeaker;
+      renderTranscript(); // remplace tout #transcript : le select disparaît avec
+    } catch (err) {
+      console.error("Réassignation échouée :", err);
+      alert("Impossible de réassigner ce segment : " + err.message);
+      closeBack();
+    }
+  });
 }
 
 function escapeHtml(s) {
@@ -481,7 +740,7 @@ function finishJob(ev) {
   if (currentEventSource) currentEventSource.close();
   setStatus("Terminé", { idle: true, percent: 100, meta: currentMeta });
   els.doneBanner.classList.add("show");
-  els.doneBanner.textContent = "✅ Transcription terminée";
+  els.doneBanner.textContent = "✿ Transcription terminée ✿";
   els.goBtn.disabled = false;
   jobInProgress = false;
   releaseWakeLock();
@@ -495,7 +754,9 @@ function finishJob(ev) {
   }
 
   if (ev.speakers && ev.speakers.length) {
+    currentSpeakers = ev.speakers;
     renderSpeakers(ev.speakers);
+    renderTranscript(); // re-render pour activer les boutons d'édition speaker
   }
 }
 
@@ -557,11 +818,8 @@ els.applyBtn.addEventListener("click", async () => {
       body: JSON.stringify(map),
     });
     if (!res.ok) throw new Error(res.statusText);
-    // Re-render le transcript avec les noms
-    els.transcript.querySelectorAll(".speaker-line").forEach(el => {
-      const original = el.textContent.replace(/ :$/, "");
-      if (map[original]) el.textContent = map[original] + " :";
-    });
+    currentNameMap = map;
+    renderTranscript();
     els.applyBtn.textContent = "✓ Appliqué";
     setTimeout(() => { els.applyBtn.textContent = "Appliquer les noms"; els.applyBtn.disabled = false; }, 1500);
   } catch (e) {

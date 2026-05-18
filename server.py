@@ -21,6 +21,7 @@ import soundfile as sf
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, Response, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 
 from core import (
     extract_audio_segment,
@@ -44,11 +45,17 @@ _DIAR_PIPELINE = {"pipeline": None}
 JOBS: dict = {}
 
 app = FastAPI(title="Clo — Speech to Text")
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 @app.get("/", response_class=HTMLResponse)
 def index():
     return STATIC_DIR.joinpath("index.html").read_text(encoding="utf-8")
+
+
+@app.get("/favicon.svg")
+def favicon():
+    return FileResponse(STATIC_DIR / "favicon.svg", media_type="image/svg+xml")
 
 
 @app.post("/upload")
@@ -289,6 +296,26 @@ async def rename(job_id: str, request: Request):
     job["name_map"] = name_map
     write_outputs(job["out_dir"], job["stem"], job["segments"], name_map=name_map)
     return {"ok": True, "name_map": name_map}
+
+
+@app.post("/reassign/{job_id}")
+async def reassign(job_id: str, request: Request):
+    """Réassigne manuellement un segment à un autre locuteur (ou aucun)."""
+    if job_id not in JOBS:
+        raise HTTPException(404)
+    job = JOBS[job_id]
+    body = await request.json()
+    idx = int(body["index"])
+    speaker = body.get("speaker")
+    if speaker == "":
+        speaker = None
+    if not (1 <= idx <= len(job["segments"])):
+        raise HTTPException(400, "Index de segment invalide")
+    job["segments"][idx - 1]["speaker"] = speaker
+    if speaker and not any(s["label"] == speaker for s in job["speakers"]):
+        job["speakers"].append({"label": speaker, "sample_start": 0.0, "sample_end": 0.0})
+    write_outputs(job["out_dir"], job["stem"], job["segments"], name_map=job.get("name_map") or {})
+    return {"ok": True}
 
 
 @app.get("/download/{job_id}/{kind}")
