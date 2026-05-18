@@ -87,9 +87,10 @@ Sur Mac Apple Silicon, `medium` est un bon compromis pour des fichiers de 30min�
 À faire **une seule fois** :
 
 1. Créer un compte sur https://huggingface.co
-2. Accepter les conditions des deux modèles :
+2. Accepter les conditions des trois modèles :
    - https://huggingface.co/pyannote/speaker-diarization-3.1
    - https://huggingface.co/pyannote/segmentation-3.0
+   - https://huggingface.co/pyannote/speaker-diarization-community-1
 3. Générer un token (type *Read*) sur https://huggingface.co/settings/tokens
 4. Le coller dans `.env` (variable `HF_TOKEN`)
 

@@ -7,6 +7,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from faster_whisper import WhisperModel
+from faster_whisper.audio import decode_audio
 
 load_dotenv()
 
@@ -25,7 +26,7 @@ def load_diarization_pipeline(hf_token: str):
     from pyannote.audio import Pipeline
     pipeline = Pipeline.from_pretrained(
         "pyannote/speaker-diarization-3.1",
-        use_auth_token=hf_token,
+        token=hf_token,
     )
     try:
         import torch
@@ -38,8 +39,16 @@ def load_diarization_pipeline(hf_token: str):
     return pipeline
 
 
+def load_audio_for_pyannote(audio_path: Path, sample_rate: int = 16000):
+    import torch
+    audio = decode_audio(str(audio_path), sampling_rate=sample_rate)
+    waveform = torch.from_numpy(audio).unsqueeze(0)
+    return {"waveform": waveform, "sample_rate": sample_rate}
+
+
 def diarize(audio: Path, pipeline):
-    diarization = pipeline(str(audio))
+    audio_input = load_audio_for_pyannote(audio)
+    diarization = pipeline(audio_input)
     turns = []
     raw_labels = []
     for turn, _, speaker in diarization.itertracks(yield_label=True):
@@ -154,10 +163,12 @@ def main() -> int:
             print(
                 "Erreur: --diarize nécessite un token HuggingFace.\n"
                 "  1. Crée un compte sur https://huggingface.co\n"
-                "  2. Accepte les conditions sur https://huggingface.co/pyannote/speaker-diarization-3.1\n"
-                "     ET sur https://huggingface.co/pyannote/segmentation-3.0\n"
+                "  2. Accepte les conditions sur les trois modèles :\n"
+                "     - https://huggingface.co/pyannote/speaker-diarization-3.1\n"
+                "     - https://huggingface.co/pyannote/segmentation-3.0\n"
+                "     - https://huggingface.co/pyannote/speaker-diarization-community-1\n"
                 "  3. Génère un token (Read) sur https://huggingface.co/settings/tokens\n"
-                "  4. Passe-le via --hf-token TOKEN ou export HF_TOKEN=TOKEN",
+                "  4. Passe-le via --hf-token TOKEN, .env (HF_TOKEN=...), ou export HF_TOKEN=TOKEN",
                 file=sys.stderr,
             )
             return 1
